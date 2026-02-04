@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, CssBaseline, Box } from '@mui/material';
+import { Container, CssBaseline, Box, AppBar, Toolbar, Typography, Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import TaskTable from './components/TaskTable';
 import TaskModal from './components/TaskModal';
@@ -39,27 +39,13 @@ function App() {
   const handleCreateOrUpdate = async (formData) => {
     try {
       if (editingTask) {
-        // When editing, we might not be sending a file, so backend handles it.
-        // Also note: The modal sends generic FormData. 
-        // Our backend PUT endpoint uses JSON currently in the controller "Task.findById(req.params.id)... req.body".
-        // BUT the TaskModal sends FormData.
-        // We need to adjust backend or frontend to match.
-        // Since backend PUT endpoint expects JSON body (req.body usually parsed from JSON unless multer is used),
-        // and our TaskModal sends FormData (multipart), 
-        // we should probably just send JSON for updates if we aren't updating file, OR update backend to handle multipart on PUT.
-        // Given the requirement "Add Task" modal has file, let's assume Edit might too.
-        // However, standard fetch with default express.json() wont parse multipart.
-        // Check backend routes again: `router.put('/:id', taskController.updateTask);` does NO `upload.single`.
-        // So for now, Edit won't support file update.
-        // I will convert formData to JSON object for Edit if file is not supported in Edit.
-        
+        // Convert formData to JSON for update since backend might verify this way
+        // note: file update is skipped as per plan discussion unless backend supports checks
         const data = {};
         formData.forEach((value, key) => data[key] = value);
-        // Note: this drops the file if it's a File object, which is good since backend PUT doesn't support it yet.
         
         await api.put(`/tasks/${editingTask._id}`, data);
       } else {
-        // POST supports multipart
         await api.post('/tasks', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -91,29 +77,39 @@ function App() {
   return (
     <React.Fragment>
       <CssBaseline />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom align="center" color="primary" sx={{ fontWeight: 'bold' }}>
-          Task Manager
-        </Typography>
-        
-        <Box display="flex" justifyContent="flex-end" mb={2}>
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            onClick={() => handleOpenModal()}
-            size="large"
-            sx={{ borderRadius: 2 }}
-          >
-            Add Task
-          </Button>
-        </Box>
+      <AppBar position="static">
+        <Toolbar>
+           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Task Manager
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
-        <TaskTable 
-          tasks={tasks} 
-          onEdit={handleOpenModal} 
-          onDelete={handleDelete}
-          onMarkDone={handleMarkDone}
-        />
+      <Container maxWidth="lg" sx={{ py: 4, minHeight: '80vh', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        
+        {tasks.length > 0 ? (
+            <TaskTable 
+              tasks={tasks} 
+              onEdit={handleOpenModal} 
+              onDelete={handleDelete}
+              onMarkDone={handleMarkDone}
+            />
+        ) : (
+            <Box display="flex" justifyContent="center" alignItems="center" flexGrow={1}>
+               <Typography variant="h5" color="textSecondary">
+                 No tasks found!
+               </Typography>
+            </Box>
+        )}
+
+        <Fab 
+            color="primary" 
+            aria-label="add" 
+            onClick={() => handleOpenModal()}
+            sx={{ position: 'fixed', bottom: 32, right: 32 }}
+        >
+            <AddIcon />
+        </Fab>
 
         <TaskModal
           open={modalOpen}

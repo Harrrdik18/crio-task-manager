@@ -1,15 +1,15 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, IconButton, Chip } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Chip, Typography, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import DownloadIcon from '@mui/icons-material/Download';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const TaskTable = ({ tasks, onEdit, onDelete, onMarkDone }) => {
-  const getStatus = (task) => {
+  const getDeadlineStatus = (task) => {
+    if (!task.deadline) return '';
     const now = new Date();
     const deadline = new Date(task.deadline);
-    // Reset time for accurate date comparison if needed, but simple comparison works
     const isPastDeadline = now > deadline;
     
     if (task.status === 'DONE') {
@@ -19,22 +19,12 @@ const TaskTable = ({ tasks, onEdit, onDelete, onMarkDone }) => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Achieved': return 'success';
-      case 'Completed': return 'success'; // or 'primary'
-      case 'Failed': return 'error';
-      case 'In Progress': return 'warning'; // or 'info'
-      default: return 'default';
-    }
-  };
-
   const handleDownload = (taskId) => {
     window.open(`http://localhost:5000/tasks/${taskId}/download`, '_blank');
   };
 
   return (
-    <TableContainer component={Paper} sx={{ mt: 4, boxShadow: 3 }}>
+    <TableContainer component={Paper} sx={{ mt: 4, boxShadow: 3, borderRadius: 2 }}>
       <Table>
         <TableHead>
           <TableRow>
@@ -42,47 +32,53 @@ const TaskTable = ({ tasks, onEdit, onDelete, onMarkDone }) => {
             <TableCell><strong>Description</strong></TableCell>
             <TableCell><strong>Deadline</strong></TableCell>
             <TableCell><strong>Status</strong></TableCell>
-            <TableCell><strong>Actions</strong></TableCell>
+            <TableCell><strong>Action</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {tasks.length === 0 ? (
-             <TableRow>
-               <TableCell colSpan={5} align="center">No tasks found</TableCell>
-             </TableRow>
-          ) : (
-            tasks.map((task) => {
-              const displayStatus = getStatus(task);
-              return (
-                <TableRow key={task._id}>
-                  <TableCell>{task.title}</TableCell>
-                  <TableCell>{task.description}</TableCell>
-                  <TableCell>{new Date(task.deadline).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Chip label={displayStatus} color={getStatusColor(displayStatus)} variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    {task.status !== 'DONE' && (
-                        <IconButton color="success" onClick={() => onMarkDone(task)} title="Mark as Done">
-                            <CheckCircleIcon />
-                        </IconButton>
-                    )}
-                    <IconButton color="primary" onClick={() => onEdit(task)} title="Edit">
-                      <EditIcon />
+          {tasks.map((task) => {
+            const deadlineStatus = getDeadlineStatus(task);
+            return (
+              <TableRow key={task._id} hover>
+                <TableCell>{task.title}</TableCell>
+                <TableCell>{task.description}</TableCell>
+                <TableCell>
+                    <Box display="flex" flexDirection="column">
+                        <Typography variant="body2">{new Date(task.deadline).toLocaleDateString()}</Typography>
+                        <Typography variant="caption" color="textSecondary">
+                            {deadlineStatus}
+                        </Typography>
+                    </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={task.status} 
+                    color={task.status === 'DONE' ? 'success' : 'warning'} 
+                    size="small" 
+                    sx={{ fontWeight: 'bold', minWidth: 80 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  {task.linkedFile && (
+                    <IconButton color="primary" onClick={() => handleDownload(task._id)} title="Download File" size="small">
+                      <DownloadIcon fontSize="small" />
                     </IconButton>
-                    <IconButton color="error" onClick={() => onDelete(task._id)} title="Delete">
-                      <DeleteIcon />
-                    </IconButton>
-                    {task.linkedFile && (
-                      <IconButton color="info" onClick={() => handleDownload(task._id)} title="Download File">
-                        <DownloadIcon />
+                  )}
+                  <IconButton color="primary" onClick={() => onEdit(task)} title="Edit" size="small">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                   <IconButton color="error" onClick={() => onDelete(task._id)} title="Delete" size="small">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                   {task.status !== 'DONE' && (
+                      <IconButton color="success" onClick={() => onMarkDone(task)} title="Mark as Done" size="small">
+                          <CheckCircleIcon fontSize="small" />
                       </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>
